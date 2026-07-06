@@ -62,6 +62,7 @@ export interface ScanResponse {
 }
 
 export interface Subscription {
+  organization_id: string;
   current_tier: string;
   plan: { name: string; price: number | null; features: string[] };
   status: string;
