@@ -1,10 +1,11 @@
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request, Depends
 from pydantic import BaseModel
 import asyncio
 from typing import Any
 
 from app.services import repository
 from app.config import settings
+from app.auth import verify_organization_access, get_current_user
 
 # Attempt to load polar SDK
 try:
@@ -54,7 +55,7 @@ def get_plans():
 
 
 @router.get("/subscription")
-def get_subscription(organization_id: str):
+def get_subscription(organization_id: str = Depends(verify_organization_access)):
     org = repository.get_organization(organization_id)
     if not org:
         raise HTTPException(status_code=404, detail="organization not found")
@@ -70,8 +71,9 @@ def get_subscription(organization_id: str):
 
 
 @router.post("/checkout")
-async def create_checkout(organization_id: str, tier: str):
+async def create_checkout(organization_id: str, tier: str, user_id: str = Depends(get_current_user)):
     """Creates a real Polar checkout session if configured, else mock."""
+    verify_organization_access(organization_id, user_id)
     org = repository.get_organization(organization_id)
     if not org:
         raise HTTPException(status_code=404, detail="organization not found")

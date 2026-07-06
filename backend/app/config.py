@@ -18,6 +18,7 @@ class Settings(BaseSettings):
     # Supabase (trusted server access)
     supabase_url: str = Field(alias="SUPABASE_URL")
     supabase_service_role_key: str = Field(alias="SUPABASE_SERVICE_ROLE_KEY")
+    supabase_jwt_secret: str = Field(alias="SUPABASE_JWT_SECRET", default="")
 
     # LLM (Phase 2)
     google_api_key: str = Field(default="", alias="GOOGLE_API_KEY")

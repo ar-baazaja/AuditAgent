@@ -68,10 +68,25 @@ export interface Subscription {
   status: string;
 }
 
+import { createClient } from "@/lib/supabase/client";
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const supabase = createClient();
+  const { data } = await supabase.auth.getSession();
+  const token = data.session?.access_token;
+  
+  const headers: Record<string, string> = { 
+    "Content-Type": "application/json", 
+    ...(init?.headers as Record<string, string> ?? {}) 
+  };
+  
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+
   const res = await fetch(`${BASE}${path}`, {
     ...init,
-    headers: { "Content-Type": "application/json", ...(init?.headers ?? {}) },
+    headers,
     cache: "no-store",
   });
   if (!res.ok) {

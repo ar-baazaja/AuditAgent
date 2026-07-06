@@ -3,12 +3,13 @@
 Compares company policy documents against the latest collected infrastructure
 evidence per control and returns concrete gaps.
 """
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 
 from app.agents.evidence_collector import EvidenceCollectorAgent
 from app.agents.gap_analyzer import GapAnalyzerAgent
 from app.schemas import GapAnalysisRequest
 from app.services import repository
+from app.auth import verify_organization_access, get_current_user
 
 router = APIRouter(prefix="/api/v1/gap-analysis", tags=["gap-analysis"])
 _collector = EvidenceCollectorAgent()
@@ -16,7 +17,8 @@ _analyzer = GapAnalyzerAgent()
 
 
 @router.post("")
-def analyze(request: GapAnalysisRequest):
+def analyze(request: GapAnalysisRequest, user_id: str = Depends(get_current_user)):
+    verify_organization_access(request.organization_id, user_id)
     if not repository.get_organization(request.organization_id):
         raise HTTPException(status_code=404, detail="organization not found")
 

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { AlertTriangle, Loader2, RefreshCw, ShieldCheck } from "lucide-react";
 
+import { createClient } from "@/lib/supabase/client";
 import {
   api,
   DEMO_ORG_ID,
@@ -21,7 +22,7 @@ import { TicketsList } from "@/components/dashboard/tickets-list";
 import { BillingCard } from "@/components/dashboard/billing-card";
 
 export default function DashboardPage() {
-  const orgId = DEMO_ORG_ID;
+  const [orgId, setOrgId] = useState<string | null>(null);
   const [overview, setOverview] = useState<ComplianceOverview | null>(null);
   const [controls, setControls] = useState<ControlRow[]>([]);
   const [tickets, setTickets] = useState<Ticket[]>([]);
@@ -30,20 +31,39 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [scanning, setScanning] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const supabase = createClient();
 
   const load = useCallback(async () => {
-    if (!orgId) {
-      setError("NEXT_PUBLIC_DEMO_ORG_ID is not set. See .env.local.example.");
-      setLoading(false);
-      return;
-    }
     try {
       setError(null);
+      
+      // Get current user and their organization
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        window.location.href = "/login";
+        return;
+      }
+      
+      const { data: members, error: memberError } = await supabase
+        .from("organization_members")
+        .select("organization_id")
+        .eq("user_id", user.id)
+        .limit(1);
+        
+      if (memberError || !members || members.length === 0) {
+        setError("You don't belong to any organization. Please contact support.");
+        setLoading(false);
+        return;
+      }
+      
+      const currentOrgId = members[0].organization_id;
+      setOrgId(currentOrgId);
+
       const [ov, ctrls, tks, sub, status] = await Promise.all([
-        api.overview(orgId),
-        api.controls(orgId),
-        api.tickets(orgId),
-        api.subscription(orgId),
+        api.overview(currentOrgId),
+        api.controls(currentOrgId),
+        api.tickets(currentOrgId),
+        api.subscription(currentOrgId),
         api.agentStatus(),
       ]);
       setOverview(ov);
@@ -63,6 +83,7 @@ export default function DashboardPage() {
   }, [load]);
 
   async function runScan() {
+    if (!orgId) return;
     setScanning(true);
     setError(null);
     try {
@@ -97,14 +118,22 @@ export default function DashboardPage() {
             <span className="font-medium">{engine || "unknown"}</span>
           </p>
         </div>
-        <Button onClick={runScan} disabled={scanning}>
-          {scanning ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <RefreshCw className="h-4 w-4" />
-          )}
-          {scanning ? "Running agents…" : "Run compliance scan"}
-        </Button>
+        <div className="flex gap-3">
+          <Button variant="outline" onClick={async () => {
+            await supabase.auth.signOut();
+            window.location.href = "/login";
+          }}>
+            Sign out
+          </Button>
+          <Button onClick={runScan} disabled={scanning}>
+            {scanning ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <RefreshCw className="h-4 w-4" />
+            )}
+            {scanning ? "Running agents…" : "Run compliance scan"}
+          </Button>
+        </div>
       </div>
 
       {error && (

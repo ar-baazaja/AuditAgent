@@ -1,21 +1,22 @@
 """Compliance posture endpoints — scores, control status, evidence (Phase 3)."""
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 
 from app.schemas import ComplianceOverview
 from app.services import repository, scoring
+from app.auth import verify_organization_access
 
 router = APIRouter(prefix="/api/v1/compliance", tags=["compliance"])
 
 
 @router.get("/overview", response_model=ComplianceOverview)
-def overview(organization_id: str):
+def overview(organization_id: str = Depends(verify_organization_access)):
     if not repository.get_organization(organization_id):
         raise HTTPException(status_code=404, detail="organization not found")
     return scoring.compute_overview(organization_id)
 
 
 @router.get("/controls")
-def controls_with_status(organization_id: str):
+def controls_with_status(organization_id: str = Depends(verify_organization_access)):
     """Every control joined with its latest evidence status for this org."""
     if not repository.get_organization(organization_id):
         raise HTTPException(status_code=404, detail="organization not found")
@@ -43,7 +44,7 @@ def controls_with_status(organization_id: str):
 
 
 @router.get("/evidence")
-def recent_evidence(organization_id: str, limit: int = 50):
+def recent_evidence(limit: int = 50, organization_id: str = Depends(verify_organization_access)):
     if not repository.get_organization(organization_id):
         raise HTTPException(status_code=404, detail="organization not found")
     return repository.get_recent_evidence(organization_id, limit)
