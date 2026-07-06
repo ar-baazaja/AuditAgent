@@ -109,4 +109,9 @@ export const api = {
         body: JSON.stringify({ organization_id: orgId, framework_key: frameworkKey }),
       },
     ),
+  createCheckout: (orgId: string, tier: string) =>
+    request<{ checkout_url: string; provider: string }>(
+      `/api/v1/billing/checkout?organization_id=${orgId}&tier=${tier}`,
+      { method: "POST" }
+    ),
 };

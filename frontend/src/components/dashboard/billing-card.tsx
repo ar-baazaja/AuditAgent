@@ -16,9 +16,7 @@ export function BillingCard({ subscription }: { subscription: Subscription }) {
       // In a real app, you'd choose the tier to upgrade to. Here we upgrade to 'starter'
       const targetTier = current_tier === "free" ? "starter" : "growth";
       
-      const res = await api(`/api/v1/billing/checkout?organization_id=${organization_id}&tier=${targetTier}`, {
-        method: "POST"
-      });
+      const res = await api.createCheckout(organization_id, targetTier);
       
       if (res.checkout_url) {
         window.location.href = res.checkout_url;
