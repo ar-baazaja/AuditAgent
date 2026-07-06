@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -m py_compile app/*.py app/agents/*.py app/mocks/*.py app/routers/*.py app/services/*.py)",
+      "PowerShell($py = \\(Get-Command python3 -ErrorAction SilentlyContinue\\); if \\(-not $py\\) { $py = \\(Get-Command py -ErrorAction SilentlyContinue\\) }; if \\($py\\) { $py.Source } else { \"no-python\" })",
+      "PowerShell(py --version 2>$null)",
+      "PowerShell(if \\(-not $?\\) { \"py-missing\" })"
+    ]
+  }
+}

@@ -1,0 +1,32 @@
+# Dependencies
+node_modules/
+.venv/
+__pycache__/
+*.pyc
+
+# Env / secrets — NEVER commit
+.env
+.env.local
+.env*.local
+!*.example
+
+# Next.js
+frontend/.next/
+frontend/out/
+frontend/build/
+next-env.d.ts
+
+# Build / cache
+dist/
+.turbo/
+*.tsbuildinfo
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Logs
+*.log
+npm-debug.log*
