@@ -7,7 +7,7 @@ lives in Agent B (the evaluator).
 """
 from __future__ import annotations
 
-from app.mocks.connectors import get_connector
+from app.connectors import get_connector
 from app.schemas import CollectedEvidence
 
 

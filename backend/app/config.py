@@ -27,6 +27,16 @@ class Settings(BaseSettings):
     polar_access_token: str = Field(default="", alias="POLAR_ACCESS_TOKEN")
     polar_organization_id: str = Field(default="", alias="POLAR_ORGANIZATION_ID")
 
+    # GitHub App Integration
+    github_app_id: str = Field(default="", alias="GITHUB_APP_ID")
+    github_client_id: str = Field(default="", alias="GITHUB_CLIENT_ID")
+    github_client_secret: str = Field(default="", alias="GITHUB_CLIENT_SECRET")
+    github_private_key: str = Field(default="", alias="GITHUB_PRIVATE_KEY")
+
+    # AWS Integration
+    aws_access_key_id: str = Field(default="", alias="AWS_ACCESS_KEY_ID")
+    aws_secret_access_key: str = Field(default="", alias="AWS_SECRET_ACCESS_KEY")
+
     # App
     frontend_origin: str = Field(default="http://localhost:3000", alias="FRONTEND_ORIGIN")
     app_env: str = Field(default="development", alias="APP_ENV")
