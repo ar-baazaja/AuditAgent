@@ -1,14 +1,16 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { AlertTriangle, Loader2, RefreshCw, ShieldCheck } from "lucide-react";
+import { Suspense, useCallback, useEffect, useState } from "react";
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import { AlertTriangle, CheckCircle2, Loader2, RefreshCw, ShieldCheck } from "lucide-react";
 
 import { createClient } from "@/lib/supabase/client";
 import {
   api,
-  DEMO_ORG_ID,
   type ComplianceOverview,
   type ControlRow,
+  type IntegrationSettings,
   type Subscription,
   type Ticket,
 } from "@/lib/api";
@@ -22,16 +24,33 @@ import { TicketsList } from "@/components/dashboard/tickets-list";
 import { BillingCard } from "@/components/dashboard/billing-card";
 
 export default function DashboardPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center text-muted-foreground">
+          <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Loading dashboard…
+        </div>
+      }
+    >
+      <DashboardContent />
+    </Suspense>
+  );
+}
+
+function DashboardContent() {
   const [orgId, setOrgId] = useState<string | null>(null);
   const [overview, setOverview] = useState<ComplianceOverview | null>(null);
   const [controls, setControls] = useState<ControlRow[]>([]);
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [subscription, setSubscription] = useState<Subscription | null>(null);
+  const [settings, setSettings] = useState<IntegrationSettings | null>(null);
   const [engine, setEngine] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [scanning, setScanning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const supabase = createClient();
+  const searchParams = useSearchParams();
+  const justCheckedOut = searchParams.get("checkout") === "success";
 
   const load = useCallback(async () => {
     try {
@@ -59,18 +78,20 @@ export default function DashboardPage() {
       const currentOrgId = members[0].organization_id;
       setOrgId(currentOrgId);
 
-      const [ov, ctrls, tks, sub, status] = await Promise.all([
+      const [ov, ctrls, tks, sub, status, settingsRes] = await Promise.all([
         api.overview(currentOrgId),
         api.controls(currentOrgId),
         api.tickets(currentOrgId),
         api.subscription(currentOrgId),
         api.agentStatus(),
+        api.getSettings(currentOrgId),
       ]);
       setOverview(ov);
       setControls(ctrls);
       setTickets(tks);
       setSubscription(sub);
       setEngine(status.evaluation_engine);
+      setSettings(settingsRes);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to load dashboard");
     } finally {
@@ -81,6 +102,18 @@ export default function DashboardPage() {
   useEffect(() => {
     load();
   }, [load]);
+
+  useEffect(() => {
+    // Right after a Polar checkout, the webhook that flips billing_tier can
+    // take a moment to arrive — re-fetch once so the new plan shows up
+    // without the user having to manually refresh.
+    if (justCheckedOut && orgId) {
+      const timer = setTimeout(() => {
+        api.subscription(orgId).then(setSubscription).catch(() => {});
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [justCheckedOut, orgId]);
 
   async function runScan() {
     if (!orgId) return;
@@ -118,23 +151,34 @@ export default function DashboardPage() {
             <span className="font-medium">{engine || "unknown"}</span>
           </p>
         </div>
-        <div className="flex gap-3">
-          <Button variant="outline" onClick={async () => {
-            await supabase.auth.signOut();
-            window.location.href = "/login";
-          }}>
-            Sign out
-          </Button>
-          <Button onClick={runScan} disabled={scanning}>
-            {scanning ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <RefreshCw className="h-4 w-4" />
-            )}
-            {scanning ? "Running agents…" : "Run compliance scan"}
-          </Button>
-        </div>
+        <Button onClick={runScan} disabled={scanning}>
+          {scanning ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <RefreshCw className="h-4 w-4" />
+          )}
+          {scanning ? "Running agents…" : "Run compliance scan"}
+        </Button>
       </div>
+
+      {justCheckedOut && (
+        <div className="mt-6 flex items-center gap-2 rounded-lg border border-green-500/30 bg-green-500/5 p-4 text-sm text-green-700">
+          <CheckCircle2 className="h-4 w-4 shrink-0" />
+          Payment received — your plan will update in a few seconds.
+        </div>
+      )}
+
+      {settings && !settings.github_installation_id && !settings.aws_role_arn && (
+        <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-primary/30 bg-primary/5 p-4 text-sm">
+          <span>
+            <span className="font-medium">Connect your stack</span> — link GitHub or AWS
+            so scans read your real infrastructure instead of sample data.
+          </span>
+          <Link href="/dashboard/settings">
+            <Button size="sm">Go to Settings</Button>
+          </Link>
+        </div>
+      )}
 
       {error && (
         <div className="mt-6 flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">

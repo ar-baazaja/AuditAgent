@@ -68,6 +68,13 @@ export interface Subscription {
   status: string;
 }
 
+export interface IntegrationSettings {
+  organization_id: string;
+  github_installation_id: string | null;
+  aws_role_arn: string | null;
+  aws_region: string | null;
+}
+
 import { createClient } from "@/lib/supabase/client";
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
@@ -129,4 +136,11 @@ export const api = {
       `/api/v1/billing/checkout?organization_id=${orgId}&tier=${tier}`,
       { method: "POST" }
     ),
+  getSettings: (orgId: string) =>
+    request<IntegrationSettings>(`/api/v1/settings?organization_id=${orgId}`),
+  updateSettings: (payload: IntegrationSettings) =>
+    request<IntegrationSettings>("/api/v1/settings", {
+      method: "PUT",
+      body: JSON.stringify(payload),
+    }),
 };

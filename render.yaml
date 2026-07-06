@@ -17,6 +17,14 @@ services:
         sync: false
       - key: POLAR_ORGANIZATION_ID
         sync: false
+      - key: POLAR_SERVER
+        value: production
+      - key: POLAR_WEBHOOK_SECRET
+        sync: false
+      - key: POLAR_PRODUCT_STARTER_ID
+        sync: false
+      - key: POLAR_PRODUCT_GROWTH_ID
+        sync: false
       - key: GITHUB_APP_ID
         sync: false
       - key: GITHUB_CLIENT_ID

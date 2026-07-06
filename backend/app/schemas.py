@@ -42,6 +42,13 @@ class GapAnalysisRequest(BaseModel):
     framework_key: str = Field(..., description="'soc2' or 'hipaa'")
 
 
+class IntegrationSettings(BaseModel):
+    organization_id: str
+    github_installation_id: Optional[str] = None
+    aws_role_arn: Optional[str] = None
+    aws_region: Optional[str] = "us-east-1"
+
+
 class TicketCreateRequest(BaseModel):
     organization_id: str
     control_id: str

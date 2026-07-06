@@ -27,6 +27,14 @@ class Settings(BaseSettings):
     # Polar.sh
     polar_access_token: str = Field(default="", alias="POLAR_ACCESS_TOKEN")
     polar_organization_id: str = Field(default="", alias="POLAR_ORGANIZATION_ID")
+    # 'sandbox' while testing, 'production' once you flip to a live Polar org.
+    polar_server: str = Field(default="sandbox", alias="POLAR_SERVER")
+    # Signing secret from the Polar webhook you register (Settings -> Webhooks).
+    # Required in production — without it, webhook payloads cannot be trusted.
+    polar_webhook_secret: str = Field(default="", alias="POLAR_WEBHOOK_SECRET")
+    # Polar product IDs for each paid tier (Polar dashboard -> Products).
+    polar_product_starter_id: str = Field(default="", alias="POLAR_PRODUCT_STARTER_ID")
+    polar_product_growth_id: str = Field(default="", alias="POLAR_PRODUCT_GROWTH_ID")
 
     # GitHub App Integration
     github_app_id: str = Field(default="", alias="GITHUB_APP_ID")

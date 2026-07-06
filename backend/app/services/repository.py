@@ -116,3 +116,28 @@ def find_open_ticket(organization_id: str, control_id: str) -> Optional[dict]:
         .data
     )
     return rows[0] if rows else None
+
+
+# ---- Integrations (per-org connector credentials) --------------------------
+def get_integration(organization_id: str) -> Optional[dict]:
+    rows = (
+        get_supabase()
+        .table("integrations")
+        .select("*")
+        .eq("organization_id", organization_id)
+        .limit(1)
+        .execute()
+        .data
+    )
+    return rows[0] if rows else None
+
+
+def upsert_integration(organization_id: str, fields: dict[str, Any]) -> dict:
+    payload = {"organization_id": organization_id, **fields}
+    return (
+        get_supabase()
+        .table("integrations")
+        .upsert(payload, on_conflict="organization_id")
+        .execute()
+        .data[0]
+    )

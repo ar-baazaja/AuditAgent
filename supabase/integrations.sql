@@ -28,3 +28,6 @@ create policy "Service role has full access to integrations"
   on public.integrations for all
   using (true)
   with check (true);
+
+-- Region for AWS scans (added for the Settings page). Safe to re-run.
+alter table public.integrations add column if not exists aws_region text default 'us-east-1';

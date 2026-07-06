@@ -22,6 +22,7 @@ from app.routers import (
     billing,
     compliance,
     gap_analysis,
+    integration_settings,
     organizations,
     remediation,
 )
@@ -86,3 +87,4 @@ app.include_router(compliance.router)
 app.include_router(gap_analysis.router)
 app.include_router(remediation.router)
 app.include_router(billing.router)
+app.include_router(integration_settings.router)
