@@ -8,6 +8,7 @@ import { AlertTriangle, CheckCircle2, Loader2, RefreshCw, ShieldCheck } from "lu
 import { createClient } from "@/lib/supabase/client";
 import {
   api,
+  pingBackend,
   type ComplianceOverview,
   type ControlRow,
   type IntegrationSettings,
@@ -46,6 +47,7 @@ function DashboardContent() {
   const [settings, setSettings] = useState<IntegrationSettings | null>(null);
   const [engine, setEngine] = useState<string>("");
   const [loading, setLoading] = useState(true);
+  const [waking, setWaking] = useState(false);
   const [scanning, setScanning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const supabase = createClient();
@@ -77,6 +79,19 @@ function DashboardContent() {
       
       const currentOrgId = members[0].organization_id;
       setOrgId(currentOrgId);
+
+      // Wake a sleeping free-tier backend before firing real requests, so
+      // the user sees "waking up" instead of an immediate, confusing failure.
+      setWaking(true);
+      const awake = await pingBackend();
+      setWaking(false);
+      if (!awake) {
+        setError(
+          "The backend didn't respond after 60s. Check that it's deployed and running (visit its /health URL directly).",
+        );
+        setLoading(false);
+        return;
+      }
 
       const [ov, ctrls, tks, sub, status, settingsRes] = await Promise.all([
         api.overview(currentOrgId),
@@ -131,8 +146,16 @@ function DashboardContent() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center text-muted-foreground">
-        <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Loading dashboard…
+      <div className="flex min-h-screen flex-col items-center justify-center gap-2 text-muted-foreground">
+        <div className="flex items-center">
+          <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+          {waking ? "Waking up backend…" : "Loading dashboard…"}
+        </div>
+        {waking && (
+          <p className="max-w-xs text-center text-xs">
+            Free-tier hosting sleeps after inactivity — this can take up to a minute.
+          </p>
+        )}
       </div>
     );
   }

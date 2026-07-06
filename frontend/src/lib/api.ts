@@ -81,26 +81,62 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const supabase = createClient();
   const { data } = await supabase.auth.getSession();
   const token = data.session?.access_token;
-  
-  const headers: Record<string, string> = { 
-    "Content-Type": "application/json", 
-    ...(init?.headers as Record<string, string> ?? {}) 
+
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    ...(init?.headers as Record<string, string> ?? {})
   };
-  
+
   if (token) {
     headers["Authorization"] = `Bearer ${token}`;
   }
 
-  const res = await fetch(`${BASE}${path}`, {
-    ...init,
-    headers,
-    cache: "no-store",
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${BASE}${path}`, {
+      ...init,
+      headers,
+      cache: "no-store",
+    });
+  } catch {
+    // fetch() throws (not a 4xx/5xx response) when the request never
+    // completed — most commonly the Render free-tier backend is asleep
+    // (spins down after ~15min idle, can take up to a minute to wake) or
+    // the request was blocked by CORS. Surface something actionable
+    // instead of the raw "Failed to fetch" browser error.
+    throw new Error(
+      "Could not reach the backend. If it's hosted on a free tier it may " +
+        "be waking up from sleep — wait ~30-60s and try again.",
+    );
+  }
   if (!res.ok) {
     const detail = await res.text().catch(() => res.statusText);
     throw new Error(`API ${res.status}: ${detail}`);
   }
   return res.json() as Promise<T>;
+}
+
+/**
+ * Poll /health until the backend responds or we give up. Used to "wake" a
+ * sleeping free-tier backend before firing the real data requests, so the
+ * dashboard shows a clear "waking up" state instead of an immediate failure.
+ */
+export async function pingBackend(
+  maxAttempts = 12,
+  intervalMs = 5000,
+): Promise<boolean> {
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    try {
+      const res = await fetch(`${BASE}/health`, { cache: "no-store" });
+      if (res.ok) return true;
+    } catch {
+      // not awake yet — fall through and retry
+    }
+    if (attempt < maxAttempts - 1) {
+      await new Promise((resolve) => setTimeout(resolve, intervalMs));
+    }
+  }
+  return false;
 }
 
 export const api = {
